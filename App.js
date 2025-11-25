@@ -1,0 +1,38 @@
+import 'react-native-gesture-handler';
+import 'react-native-reanimated';
+
+import React, { useEffect } from "react";
+import { Provider, useDispatch } from "react-redux";
+import { NavigationContainer } from "@react-navigation/native";
+import { store } from "./src/store";
+import AppNavigator from "./src/navigation/AppNavigator";
+import { setUserFromStorage } from "./src/store/authSlice";
+import { loadJSON } from "./src/utils/storage";
+import { restoreFavourites } from "./src/store/favouritesSlice";
+
+const AppInner = () => {
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    const restore = async () => {
+      const auth = await loadJSON("auth");
+      if (auth) dispatch(setUserFromStorage(auth));
+      dispatch(restoreFavourites());
+    };
+    restore();
+  }, [dispatch]);
+
+  return (
+    <NavigationContainer>
+      <AppNavigator />
+    </NavigationContainer>
+  );
+};
+
+export default function App() {
+  return (
+    <Provider store={store}>
+      <AppInner />
+    </Provider>
+  );
+}
