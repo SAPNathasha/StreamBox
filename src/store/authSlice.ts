@@ -1,56 +1,142 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axios from "axios";
+// src/store/authSlice.ts
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { loadJSON, saveJSON } from "../utils/storage";
 
-const REQRES = "https://reqres.in/api"; // dummy auth
+type StoredUser = {
+  email: string;
+  password: string;
+};
 
-export const loginUser = createAsyncThunk(
-  "auth/login",
-  async (payload: { email: string; password: string }, thunkAPI) => {
-    const res = await axios.post(`${REQRES}/login`, payload);
-    return { ...payload, token: res.data.token };
+type User = {
+  email: string;
+};
+
+type AuthState = {
+  user: User | null;
+  token: string | null; // dummy token just to keep shape
+  status: "idle" | "loading" | "succeeded" | "failed";
+  error: string | null;
+};
+
+const initialState: AuthState = {
+  user: null,
+  token: null,
+  status: "idle",
+  error: null,
+};
+
+// Local-only "register" (no network, no API key)
+export const registerUser = createAsyncThunk<
+  { email: string },
+  { email: string; password: string },
+  { rejectValue: string }
+>("auth/register", async (payload, thunkAPI) => {
+  try {
+    const existing =
+      ((await loadJSON("users")) as StoredUser[] | null) ?? [];
+
+    if (existing.some((u) => u.email === payload.email)) {
+      return thunkAPI.rejectWithValue("Email already registered.");
+    }
+
+    const updated: StoredUser[] = [...existing, payload];
+    await saveJSON("users", updated);
+
+    return { email: payload.email };
+  } catch (err) {
+    return thunkAPI.rejectWithValue(
+      "Registration failed. Please try again."
+    );
   }
-);
+});
 
-export const registerUser = createAsyncThunk(
-  "auth/register",
-  async (payload: { email: string; password: string }, thunkAPI) => {
-    const res = await axios.post(`${REQRES}/register`, payload);
-    return { ...payload, id: res.data.id, token: res.data.token };
+// Local-only "login" (no network, no API key)
+export const loginUser = createAsyncThunk<
+  { email: string },
+  { email: string; password: string },
+  { rejectValue: string }
+>("auth/login", async (payload, thunkAPI) => {
+  try {
+    const existing =
+      ((await loadJSON("users")) as StoredUser[] | null) ?? [];
+
+    const user = existing.find(
+      (u) =>
+        u.email === payload.email && u.password === payload.password
+    );
+
+    if (!user) {
+      return thunkAPI.rejectWithValue("Invalid email or password.");
+    }
+
+    return { email: user.email };
+  } catch (err) {
+    return thunkAPI.rejectWithValue("Login failed. Please try again.");
   }
-);
+});
 
-const slice = createSlice({
+const authSlice = createSlice({
   name: "auth",
-  initialState: { user: null as any, token: null as string | null, status: "idle" as string },
+  initialState,
   reducers: {
     logout(state) {
       state.user = null;
       state.token = null;
+      state.status = "idle";
+      state.error = null;
       saveJSON("auth", null);
     },
-    setUserFromStorage(state, action) {
-      state.user = action.payload?.user ?? null;
-      state.token = action.payload?.token ?? null;
+    setUserFromStorage(
+      state,
+      action: PayloadAction<{ user: User | null; token: string | null } | null>
+    ) {
+      if (action.payload) {
+        state.user = action.payload.user;
+        state.token = action.payload.token;
+      } else {
+        state.user = null;
+        state.token = null;
+      }
     },
   },
   extraReducers: (builder) => {
+    // LOGIN
     builder
+      .addCase(loginUser.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
       .addCase(loginUser.fulfilled, (state, action) => {
-        state.user = { email: action.payload.email };
-        state.token = action.payload.token;
         state.status = "succeeded";
+        state.user = { email: action.payload.email };
+        state.token = "dummy-token";
+        state.error = null;
         saveJSON("auth", { user: state.user, token: state.token });
       })
-      .addCase(loginUser.pending, (state) => { state.status = "loading"; })
-      .addCase(loginUser.rejected, (state) => { state.status = "failed"; })
-      .addCase(registerUser.fulfilled, (state, action) => {
-        state.user = { email: action.payload.email };
-        state.token = action.payload.token;
-        saveJSON("auth", { user: state.user, token: state.token });
+      .addCase(loginUser.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload || "Login failed.";
       });
-  }
+
+    // REGISTER
+    builder
+      .addCase(registerUser.pending, (state) => {
+        state.status = "loading";
+        state.error = null;
+      })
+      .addCase(registerUser.fulfilled, (state, action) => {
+        state.status = "succeeded";
+        state.user = { email: action.payload.email };
+        state.token = "dummy-token";
+        state.error = null;
+        saveJSON("auth", { user: state.user, token: state.token });
+      })
+      .addCase(registerUser.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.payload || "Registration failed.";
+      });
+  },
 });
 
-export const { logout, setUserFromStorage } = slice.actions;
-export default slice.reducer;
+export const { logout, setUserFromStorage } = authSlice.actions;
+export default authSlice.reducer;
