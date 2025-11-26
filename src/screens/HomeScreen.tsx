@@ -1,9 +1,9 @@
+// src/screens/HomeScreen.tsx
 import React, { useEffect } from "react";
-import { View, FlatList, Text, ActivityIndicator } from "react-native";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchMovies } from "../store/moviesSlice";
+import { View, FlatList, ActivityIndicator } from "react-native";
 import MovieCard from "../components/MovieCard";
-import { RootState } from "../store";
+import { fetchMovies } from "../store/moviesSlice";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 
 type Movie = {
   id: number;
@@ -13,12 +13,12 @@ type Movie = {
 };
 
 export default function HomeScreen({ navigation }: any) {
-  const dispatch = useDispatch();
-  const movies = useSelector((s: RootState) => s.movies.list);
-  const status = useSelector((s: RootState) => s.movies.status);
+  const dispatch = useAppDispatch();
+  const movies = useAppSelector((s) => s.movies.list);
+  const status = useAppSelector((s) => s.movies.status);
 
   useEffect(() => {
-    dispatch<any>(fetchMovies("comedy"));
+    dispatch(fetchMovies("comedy"));
   }, [dispatch]);
 
   if (status === "loading") {
@@ -29,7 +29,9 @@ export default function HomeScreen({ navigation }: any) {
     <View style={{ flex: 1, padding: 8 }}>
       <FlatList
         data={movies}
-        keyExtractor={(item: Movie) => item.id?.toString() ?? item.title}
+        keyExtractor={(item: Movie) =>
+          item.id?.toString() ?? item.title
+        }
         renderItem={({ item }: { item: Movie }) => (
           <MovieCard
             movie={item}
