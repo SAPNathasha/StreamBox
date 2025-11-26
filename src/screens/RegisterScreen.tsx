@@ -1,3 +1,4 @@
+// src/screens/RegisterScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -6,11 +7,20 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator,
 } from "react-native";
+import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { AuthStackParamList } from "../navigation/AuthNavigator";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { registerUser } from "../store/authSlice";
 
-export default function RegisterScreen({ navigation }: any) {
+type Props = NativeStackScreenProps<AuthStackParamList, "Register">;
+
+export default function RegisterScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const dispatch = useAppDispatch();
+  const { status, error } = useAppSelector((state) => state.auth);
 
   const handleRegister = async () => {
     if (!email.trim() || !password.trim()) {
@@ -19,24 +29,18 @@ export default function RegisterScreen({ navigation }: any) {
     }
 
     try {
-      const res = await fetch("https://reqres.in/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
-      });
+      const resultAction = await dispatch(registerUser({ email, password }));
 
-      const data = await res.json();
-
-      if (res.ok) {
+      if (registerUser.fulfilled.match(resultAction)) {
         Alert.alert("Success", "Account created! Please login.");
         navigation.navigate("Login");
       } else {
-        Alert.alert("Register Failed", data.error || "Unknown error");
+        const msg =
+          (resultAction.payload as string) ||
+          "Registration failed. Please try again.";
+        Alert.alert("Register Failed", msg);
       }
-    } catch (error) {
+    } catch (err) {
       Alert.alert("Error", "Something went wrong!");
     }
   };
@@ -62,8 +66,18 @@ export default function RegisterScreen({ navigation }: any) {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.btn} onPress={handleRegister}>
-        <Text style={styles.btnText}>Register</Text>
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <TouchableOpacity
+        style={styles.btn}
+        onPress={handleRegister}
+        disabled={status === "loading"}
+      >
+        {status === "loading" ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.btnText}>Register</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => navigation.navigate("Login")}>
@@ -82,7 +96,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    marginBottom: 30,
+    marginBottom: 20,
     textAlign: "center",
   },
   input: {
@@ -108,5 +122,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#3b82f6",
     fontSize: 16,
+  },
+  error: {
+    color: "red",
+    marginBottom: 10,
+    textAlign: "center",
   },
 });
