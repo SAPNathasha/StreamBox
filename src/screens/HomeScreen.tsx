@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.tsx
 import React, { useEffect } from "react";
 import { View, FlatList, ActivityIndicator } from "react-native";
 import MovieCard from "../components/MovieCard";

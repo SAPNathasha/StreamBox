@@ -1,4 +1,3 @@
-// src/screens/LoginScreen.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -33,7 +32,6 @@ export default function LoginScreen({ navigation }: Props) {
 
       if (loginUser.fulfilled.match(resultAction)) {
         Alert.alert("Success", "Logged in!");
-        // After this, your AppNavigator can decide whether to show MainTabs vs AuthStack
       } else {
         const msg =
           (resultAction.payload as string) || "Login failed. Please try again.";

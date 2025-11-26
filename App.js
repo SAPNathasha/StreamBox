@@ -1,4 +1,3 @@
-// App.tsx
 import "react-native-gesture-handler";
 import "react-native-reanimated";
 
@@ -13,8 +12,6 @@ const AppInner = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // We ONLY restore favourites.
-    // We DO NOT restore auth.user, so the app always starts as logged out.
     dispatch(restoreFavourites());
   }, [dispatch]);
 

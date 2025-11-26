@@ -1,4 +1,3 @@
-// src/store/authSlice.ts
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { loadJSON, saveJSON } from "../utils/storage";
 
@@ -13,7 +12,7 @@ type User = {
 
 type AuthState = {
   user: User | null;
-  token: string | null; // dummy token just to keep shape
+  token: string | null; 
   status: "idle" | "loading" | "succeeded" | "failed";
   error: string | null;
 };
@@ -25,7 +24,6 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Local-only "register" (no network, no API key)
 export const registerUser = createAsyncThunk<
   { email: string },
   { email: string; password: string },
@@ -50,7 +48,6 @@ export const registerUser = createAsyncThunk<
   }
 });
 
-// Local-only "login" (no network, no API key)
 export const loginUser = createAsyncThunk<
   { email: string },
   { email: string; password: string },
